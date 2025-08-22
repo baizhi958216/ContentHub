@@ -9,7 +9,6 @@
 
 ## 预览
 
-![screenshot1](./public/screenshot-1.png)  
 ![screenshot2](./public/screenshot-2.png)  
 ![screenshot3](./public/screenshot-3.png)
 
@@ -43,7 +42,7 @@
 ### 2. 安装依赖
 
 ```bash
-npm install
+pnpm install
 ```
 
 ### 3. 数据库配置
@@ -194,3 +193,14 @@ Content-Type: multipart/form-data
 2. 设置生产环境数据库
 3. 运行数据库迁移：`npx prisma migrate deploy`
 4. 启动服务：`pnpm preview`
+
+### prompts
+我想要做一个平台来收集我日常刷到的文章以及视频，我希望使用Nuxtjs作为框架，使用tailwindcss和shadcn作样式处理，数据库使用postgresql,搭配prisma使用，数据库需要能够存放原始链接，如果是文章需要保存文章内容和原始链接，如果有评论就需要保存评论，如果是视频，跟文章一样，但是需要新增一个本地视频映射，因为我会把视频放到本地存储，需要为每一个文章或者视频添加点赞量、浏览量、收藏量，同时还需要实现这些功能。前端页面我希望整个首页都是卡片的瀑布流展示，文章卡片需要有标题、文章简介、点击其中一个卡片可以新增浏览量，然后弹窗显示内容，UI设计需要有现代化的风格，流畅的动画
+
+我希望上传的文件位置可以通过.env配置
+
+实现完整的视频文件上传功能，存到本地就好了
+
+332MB的视频上传上去变成了588MB
+
+
