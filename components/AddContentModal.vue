@@ -374,8 +374,8 @@ const uploadWithProgress = (formData: FormData): Promise<any> => {
       reject(new Error('Upload failed'))
     })
     
-    // 发送请求到formidable上传端点
-    xhr.open('POST', '/api/content/formidable-upload')
+    // 发送请求到视频上传端点
+    xhr.open('POST', '/api/video/upload')
     xhr.send(formData)
   })
 }
@@ -404,22 +404,23 @@ const handleSubmit = async () => {
     if (form.type === 'VIDEO' && videoFile.value) {
       try {
         uploadProgress.value = 0
-        
-        // 创建FormData对象
+
+        // 第一步：仅上传视频文件，获取视频资产ID与URL
         const formData = new FormData()
-        
-        // 添加基本信息
-        Object.entries(requestData).forEach(([key, value]) => {
-          formData.append(key, typeof value === 'string' ? value : JSON.stringify(value))
-        })
-        
-        // 添加视频文件
         formData.append('videoFile', videoFile.value)
-        
-        // 使用XMLHttpRequest上传文件
-        const result = await uploadWithProgress(formData)
-        
-        emit('added', result)
+        const uploaded = await uploadWithProgress(formData)
+
+        // 第二步：以 JSON 提交内容，关联视频资产
+        const response = await $fetch('/api/content', {
+          method: 'POST',
+          body: {
+            ...requestData,
+            type: 'VIDEO',
+            videoAssetId: uploaded.id
+          }
+        })
+
+        emit('added', response)
         closeModal()
         return
       } catch (error) {

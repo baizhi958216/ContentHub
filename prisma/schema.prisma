@@ -23,6 +23,8 @@ model Content {
   content     String?     // 文章内容或视频描述
   localVideoPath String?  // 本地视频路径
   type        ContentType
+  videoId     String?
+  video       VideoAsset? @relation(fields: [videoId], references: [id], onDelete: SetNull)
   
   // 统计数据
   likes       Int         @default(0)
@@ -74,4 +76,18 @@ model UserAction {
   createdAt DateTime @default(now())
   
   @@map("user_actions")
+}
+
+model VideoAsset {
+  id        String   @id @default(cuid())
+  url       String
+  path      String?
+  filename  String?
+  size      Int?
+  mimeType  String?
+  createdAt DateTime @default(now())
+
+  contents  Content[]
+  
+  @@map("video_assets")
 }

@@ -1,16 +1,6 @@
-import { PrismaClient } from '@prisma/client'
-import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
-import { existsSync } from 'fs'
 import { defineEventHandler, createError, readBody } from 'h3'
+import { prisma } from '~/lib/prisma'
 
-const prisma = new PrismaClient()
-
-// 获取环境变量
-const config = {
-  uploadDir: process.env.UPLOAD_DIR || './uploads',
-  maxFileSize: parseInt(process.env.MAX_FILE_SIZE || '100') * 1024 * 1024 // 默认100MB
-}
 
 export default defineEventHandler(async (event) => {
   try {
@@ -33,54 +23,36 @@ export default defineEventHandler(async (event) => {
     }
 
     let localVideoPath = null
+    let videoId: string | null = null
 
-    // 处理视频文件上传 - 由于直接处理文件上传有问题，我们使用base64编码的方式
-    if (data.type === 'VIDEO' && data.videoBase64) {
-      try {
-        // 从环境变量中获取上传目录
-        const uploadBasePath = config.uploadDir.startsWith('./') 
-          ? config.uploadDir.substring(2) // 移除开头的 './'
-          : config.uploadDir;
-        
-        // 确保上传目录存在
-        const fullUploadDir = join(process.cwd(), 'public', uploadBasePath, 'videos');
-        if (!existsSync(fullUploadDir)) {
-          await mkdir(fullUploadDir, { recursive: true });
+    // 视频提交采用“两步法”：先上传获取视频URL/ID，再以JSON提交
+    if (data.type === 'VIDEO') {
+      if (data.videoAssetId) {
+        const asset = await prisma.videoAsset.findUnique({
+          where: { id: data.videoAssetId }
+        })
+        if (!asset) {
+          throw createError({
+            statusCode: 400,
+            statusMessage: 'Invalid videoAssetId'
+          })
         }
-        
-        // 生成唯一文件名
-        const timestamp = Date.now();
-        const randomString = Math.random().toString(36).substring(2, 10);
-        const fileName = `video-${timestamp}-${randomString}.mp4`;
-        
-        // 构建文件路径
-        const filePath = join(fullUploadDir, fileName);
-        localVideoPath = `/${uploadBasePath}/videos/${fileName}`;
-        
-        console.log(`保存视频文件到: ${filePath}`);
-        
-        // 解码base64并保存文件
-        const base64Data = data.videoBase64.split(';base64,').pop();
-        if (base64Data) {
-          const fileBuffer = Buffer.from(base64Data, 'base64');
-          
-          // 检查文件大小
-          if (fileBuffer.length > config.maxFileSize) {
-            throw createError({
-              statusCode: 400,
-              statusMessage: `File size exceeds the limit of ${config.maxFileSize / (1024 * 1024)}MB`
-            });
-          }
-          
-          await writeFile(filePath, fileBuffer);
-          console.log(`视频文件已保存，大小: ${fileBuffer.length} 字节`);
+        videoId = asset.id
+        localVideoPath = asset.url
+      } else if (data.videoUrl) {
+        try {
+          const asset = await prisma.videoAsset.create({
+            data: { url: data.videoUrl }
+          })
+          videoId = asset.id
+          localVideoPath = asset.url
+        } catch (err) {
+          console.error('创建视频资产失败:', err)
+          throw createError({
+            statusCode: 500,
+            statusMessage: 'Failed to create video asset'
+          })
         }
-      } catch (err) {
-        console.error('保存文件失败:', err);
-        throw createError({
-          statusCode: 500,
-          statusMessage: 'Failed to save video file'
-        });
       }
     }
 
@@ -114,6 +86,7 @@ export default defineEventHandler(async (event) => {
           originalUrl: data.originalUrl,
           content: data.content || null,
           localVideoPath,
+          videoId: videoId || undefined,
           type: data.type,
           tags: {
             connect: tagConnections.length > 0 ? tagConnections : undefined
