@@ -36,7 +36,7 @@
 
 ### 1. 环境要求
 
-- Node.js 18+
+- Node.js 22+
 - PostgreSQL 数据库
 
 ### 2. 安装依赖
@@ -71,6 +71,9 @@ npx prisma db push
 
 # 可选：查看数据库
 npx prisma studio
+
+# 可选：创建管理员账户
+node scripts/create-admin.js
 ```
 
 ### 5. 启动开发服务器
@@ -203,4 +206,64 @@ Content-Type: multipart/form-data
 
 332MB的视频上传上去变成了588MB
 
+项目里面有哪些接口或者函数或者文件是不再使用的，帮我删掉
 
+我还需要一个账户系统，有管理员和普通用户，管理员可以查看并且修改全部的数据，包括全部账号的封禁，文章，视频的增删查改，普通用户可以通过注册来上传和管理自己发布的文章或视频
+
+完了，我连首页都进不去，500[图片]
+
+你把我原来的页面样式改得好丑，你改了这么多，我原来的样式都变了[图片]
+
+添加内容的时候出现了401错误，我已经登录了管理员账户[图片]
+
+进入用户管理发生了401[图片]
+
+那我怎么管理我发布的文章以及用户发布的文章，我进去只有用户管理[图片]
+
+首页点击卡片打不开，控制台报错："/api/content/cmeno2gyh000bnoogpubqs4et/view": 401 Server Error
+
+直接500了哈[图片]
+
+管理面板文章列表点击查看后进入了404页面[图片]
+
+Package import specifier "#auth" is not defined in package[图片]
+
+进网页有水合错误：/content/cmeno2gyh000bnoogpubqs4e
+
+我希望在内容管理的表格操作栏里面点击查看后，是弹窗显示内容详情，而不是打开新页面，我不需要这里打开新页面[图片]
+
+内容管理进不去了[图片]
+
+实现编辑功能[图片]
+
+类型筛选还有状态筛选全部是500错误[图片]
+
+内容类型错误，把文章识别为了视频[图片]
+
+编辑和查看的时候，如果是视频内容，我希望可以预览视频，修改视频[图片]
+
+如果登录的是普通用户，我希望可以管理我创建的文章或者视频，目前只有管理员可以管理
+
+报错了哈：
+```
+[plugin:vite:vue] Element is missing end tag.
+C:/Users/14752/codes/content-hub/components/AddContentModal.vue:312:1
+310 | 现在让我创建内容详情组件：
+311 |
+312 | <write_to_file>
+| ^
+313 | <path>components/ContentModal.vue</path>
+```
+
+添加内容弹窗默认显示出来了，无法被关闭[图片]
+
+它还在[图片]
+
+普通用户也需要内容管理
+
+报错:
+```
+[Vue warn]: Missing required prop: "isOpen"
+at <ContentModal key=0 content= {id: 'cmensgmiq0001nof8hso26j56', title: 'hi', description: 'hi', originalUrl: 'hi', content: 'hi', …} onClose=fn<closeContentModal> >
+at <MyContent onVnodeUnmounted=fn<onVnodeUnmounted>
+```
