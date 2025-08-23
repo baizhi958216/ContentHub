@@ -116,8 +116,17 @@ const handleVideoError = () => {
 }
 
 const openModal = async () => {
-  // 增加浏览量
-  await $fetch(`/api/content/${props.content.id}/view`, { method: 'POST' })
+  try {
+    const auth = useAuth()
+    // 增加浏览量
+    await $fetch(`/api/content/${props.content.id}/view`, { 
+      method: 'POST',
+      headers: auth.getAuthHeaders()
+    })
+  } catch (error) {
+    console.error('Failed to update view count:', error)
+    // 即使更新浏览量失败，也要打开模态框
+  }
   emit('openModal', props.content)
 }
 

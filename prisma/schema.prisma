@@ -10,6 +10,26 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  ADMIN
+  USER
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  name          String?
+  role          Role      @default(USER)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  contents      Content[]
+  comments      Comment[]
+  
+  @@map("users")
+}
+
 enum ContentType {
   ARTICLE
   VIDEO
@@ -35,9 +55,15 @@ model Content {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   
+  // 用户关联
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
   // 关联
   comments    Comment[]
   tags        Tag[]       @relation("ContentTags")
+  userLikes   ContentLike[]
+  userFavorites ContentFavorite[]
   
   @@map("contents")
 }
@@ -45,7 +71,11 @@ model Content {
 model Comment {
   id        String   @id @default(cuid())
   content   String
-  author    String?
+  
+  // 用户关联
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
   contentId String
   content_relation Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
   
@@ -72,6 +102,7 @@ model UserAction {
   action    String   // 'like', 'view', 'favorite'
   ipAddress String?
   userAgent String?
+  userId    String?  // 可选关联到用户
   
   createdAt DateTime @default(now())
   
@@ -90,4 +121,28 @@ model VideoAsset {
   contents  Content[]
   
   @@map("video_assets")
+}
+
+model ContentLike {
+  userId    String
+  contentId String
+  createdAt DateTime @default(now())
+  
+  // 关联
+  content   Content  @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  
+  @@id([userId, contentId])
+  @@map("content_likes")
+}
+
+model ContentFavorite {
+  userId    String
+  contentId String
+  createdAt DateTime @default(now())
+  
+  // 关联
+  content   Content  @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  
+  @@id([userId, contentId])
+  @@map("content_favorites")
 }

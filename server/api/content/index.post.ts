@@ -3,6 +3,13 @@ import { prisma } from '~/lib/prisma'
 
 
 export default defineEventHandler(async (event) => {
+  // 检查用户是否已登录
+  if (!event.context.auth?.user) {
+    throw createError({
+      statusCode: 401,
+      statusMessage: '请先登录'
+    })
+  }
   try {
     // 使用 readBody 处理请求数据
     const data = await readBody(event)
@@ -78,7 +85,7 @@ export default defineEventHandler(async (event) => {
     }
 
     try {
-      // 创建内容
+      // 创建内容，关联到当前用户
       const content = await prisma.content.create({
         data: {
           title: data.title,
@@ -90,7 +97,9 @@ export default defineEventHandler(async (event) => {
           type: data.type,
           tags: {
             connect: tagConnections.length > 0 ? tagConnections : undefined
-          }
+          },
+          // 关联到当前用户
+          userId: event.context.auth.user.id
         },
         include: {
           tags: true,

@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client'
-import { defineEventHandler, getQuery, createError } from 'h3'
+import { defineEventHandler, getQuery, createError, getHeader } from 'h3'
+import jwt from 'jsonwebtoken'
 
 const prisma = new PrismaClient()
 
@@ -10,11 +11,34 @@ export default defineEventHandler(async (event) => {
     const limit = parseInt(query.limit as string) || 20
     const type = query.type as string
     const search = query.search as string
+    const my = query.my as string // 是否只获取当前用户的内容
 
     const skip = (page - 1) * limit
 
     // 构建查询条件
     const where: any = {}
+    
+    // 如果是获取我的内容，需要验证用户身份并限制为当前用户
+    if (my === 'true') {
+      const authHeader = getHeader(event, 'authorization')
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        throw createError({
+          statusCode: 401,
+          statusMessage: 'Unauthorized'
+        })
+      }
+
+      const token = authHeader.substring(7)
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as any
+        where.userId = decoded.userId
+      } catch (err) {
+        throw createError({
+          statusCode: 401,
+          statusMessage: 'Invalid token'
+        })
+      }
+    }
     
     if (type && type !== 'ALL') {
       where.type = type
@@ -65,8 +89,11 @@ export default defineEventHandler(async (event) => {
         pages: Math.ceil(total / limit)
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching contents:', error)
+    if (error?.statusCode) {
+      throw error
+    }
     throw createError({
       statusCode: 500,
       statusMessage: 'Failed to fetch contents'

@@ -11,6 +11,52 @@
             </h1>
             
             <div class="flex items-center space-x-2">
+              <!-- 用户认证按钮 - 移动端 -->
+              <ClientOnly>
+                <div v-if="auth.isLoggedIn.value" class="flex items-center space-x-2">
+                  <!-- 我的内容按钮 - 移动端 -->
+                  <NuxtLink to="/my-content" class="p-2 rounded-lg text-blue-600 hover:bg-gray-100 dark:hover:bg-gray-700">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                  </NuxtLink>
+                  
+                  <!-- 管理员菜单 - 移动端 -->
+                  <div v-if="auth.isAdmin.value" class="relative">
+                    <button @click="showMobileAdminMenu = !showMobileAdminMenu" class="p-2 rounded-lg text-purple-600 hover:bg-gray-100 dark:hover:bg-gray-700">
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                      </svg>
+                    </button>
+                    <div v-if="showMobileAdminMenu" class="absolute right-0 mt-2 w-32 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-50 border border-gray-200 dark:border-gray-700">
+                      <NuxtLink to="/admin/users" class="block px-3 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                        用户管理
+                      </NuxtLink>
+                      <NuxtLink to="/admin/content" class="block px-3 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                        内容管理
+                      </NuxtLink>
+                    </div>
+                  </div>
+                  
+                  <button @click="auth.logout()" class="p-2 rounded-lg text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                    </svg>
+                  </button>
+                </div>
+                <div v-else class="flex items-center space-x-2">
+                  <NuxtLink to="/login" class="text-sm text-blue-600 hover:text-blue-800">登录</NuxtLink>
+                  <NuxtLink to="/register" class="text-sm bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded">注册</NuxtLink>
+                </div>
+                <template #fallback>
+                  <div class="flex items-center space-x-2">
+                    <NuxtLink to="/login" class="text-sm text-blue-600 hover:text-blue-800">登录</NuxtLink>
+                    <NuxtLink to="/register" class="text-sm bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded">注册</NuxtLink>
+                  </div>
+                </template>
+              </ClientOnly>
+              
               <!-- 移动端搜索按钮 -->
               <button 
                 @click="mobileSearchOpen = !mobileSearchOpen"
@@ -29,12 +75,15 @@
               </button>
               
               <!-- 添加内容按钮 -->
-              <button
-                @click="showAddModal = true"
-                class="p-2 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors"
-              >
-                <PlusIcon class="w-5 h-5" />
-              </button>
+              <ClientOnly>
+                <button
+                  v-if="auth.isLoggedIn.value"
+                  @click="showAddModal = true"
+                  class="p-2 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors"
+                >
+                  <PlusIcon class="w-5 h-5" />
+                </button>
+              </ClientOnly>
             </div>
           </div>
           
@@ -85,12 +134,64 @@
               <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
                 内容汇
               </h1>
-              <div class="hidden sm:flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
-                <span>共 {{ totalCount }} 项内容</span>
-              </div>
+              <ClientOnly>
+                <div class="hidden sm:flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
+                  <span>共 {{ totalCount }} 项内容</span>
+                </div>
+                <template #fallback>
+                  <div class="hidden sm:flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
+                    <span>共 0 项内容</span>
+                  </div>
+                </template>
+              </ClientOnly>
             </div>
             
             <div class="flex items-center space-x-4">
+              <!-- 用户认证区域 - 桌面端 -->
+              <ClientOnly>
+                <div v-if="auth.isLoggedIn.value" class="flex items-center space-x-4">
+                  <span class="text-sm text-gray-700 dark:text-gray-300">{{ auth.user.value?.name || auth.user.value?.email }}</span>
+                  
+                  <!-- 普通用户：我的内容链接 -->
+                  <NuxtLink to="/my-content" class="text-sm text-blue-600 hover:text-blue-800 flex items-center space-x-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <span>我的内容</span>
+                  </NuxtLink>
+                  
+                  <!-- 管理员菜单 -->
+                  <div v-if="auth.isAdmin.value" class="relative">
+                    <button @click="showAdminMenu = !showAdminMenu" class="text-sm text-purple-600 hover:text-purple-800 flex items-center space-x-1">
+                      <span>管理面板</span>
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                      </svg>
+                    </button>
+                    <div v-if="showAdminMenu" class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-50 border border-gray-200 dark:border-gray-700">
+                      <NuxtLink to="/admin/users" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                        用户管理
+                      </NuxtLink>
+                      <NuxtLink to="/admin/content" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                        内容管理
+                      </NuxtLink>
+                    </div>
+                  </div>
+                  
+                  <button @click="auth.logout()" class="text-sm text-red-600 hover:text-red-800">登出</button>
+                </div>
+                <div v-else class="flex items-center space-x-4">
+                  <NuxtLink to="/login" class="text-sm text-blue-600 hover:text-blue-800">登录</NuxtLink>
+                  <NuxtLink to="/register" class="text-sm bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg">注册</NuxtLink>
+                </div>
+                <template #fallback>
+                  <div class="flex items-center space-x-4">
+                    <NuxtLink to="/login" class="text-sm text-blue-600 hover:text-blue-800">登录</NuxtLink>
+                    <NuxtLink to="/register" class="text-sm bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg">注册</NuxtLink>
+                  </div>
+                </template>
+              </ClientOnly>
+              
               <!-- 搜索框 -->
               <div class="relative">
                 <SearchIcon class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -138,13 +239,16 @@
               </button>
               
               <!-- 添加内容按钮 -->
-              <button
-                @click="showAddModal = true"
-                class="btn-primary flex items-center space-x-2"
-              >
-                <PlusIcon class="w-4 h-4" />
-                <span>添加内容</span>
-              </button>
+              <ClientOnly>
+                <button
+                  v-if="auth.isLoggedIn.value"
+                  @click="showAddModal = true"
+                  class="btn-primary flex items-center space-x-2"
+                >
+                  <PlusIcon class="w-4 h-4" />
+                  <span>添加内容</span>
+                </button>
+              </ClientOnly>
             </div>
           </div>
         </div>
@@ -169,13 +273,31 @@
         <p class="text-gray-500 dark:text-gray-400 mb-6">
           {{ searchQuery ? '尝试使用不同的关键词搜索' : '开始收藏你喜欢的文章和视频吧' }}
         </p>
-        <button
-          v-if="!searchQuery"
-          @click="showAddModal = true"
-          class="btn-primary"
-        >
-          添加第一个内容
-        </button>
+        <ClientOnly>
+          <button
+            v-if="!searchQuery && auth.isLoggedIn.value"
+            @click="showAddModal = true"
+            class="btn-primary"
+          >
+            添加第一个内容
+          </button>
+          <NuxtLink
+            v-else-if="!searchQuery && !auth.isLoggedIn.value"
+            to="/login"
+            class="btn-primary inline-block"
+          >
+            登录后添加内容
+          </NuxtLink>
+          <template #fallback>
+            <NuxtLink
+              v-if="!searchQuery"
+              to="/login"
+              class="btn-primary inline-block"
+            >
+              登录后添加内容
+            </NuxtLink>
+          </template>
+        </ClientOnly>
       </div>
 
       <!-- 内容网格 -->
@@ -238,6 +360,9 @@ interface ContentItem {
   comments?: Array<{ id: string; content: string; author?: string; createdAt: string }>
 }
 
+// 用户认证
+const auth = useAuth()
+
 // 响应式数据
 const contents = ref<ContentItem[]>([])
 const searchQuery = ref('')
@@ -251,6 +376,8 @@ const hasMore = ref(true)
 const page = ref(1)
 const limit = 20
 const mobileSearchOpen = ref(false)
+const showAdminMenu = ref(false)
+const showMobileAdminMenu = ref(false)
 
 // 计算属性
 const filteredContents = computed(() => {
@@ -298,12 +425,12 @@ const loadContents = async (reset = false) => {
     })
 
     if (reset) {
-      contents.value = response.data
+      contents.value = response.data || []
     } else {
-      contents.value.push(...response.data)
+      contents.value.push(...(response.data || []))
     }
 
-    hasMore.value = response.data.length === limit
+    hasMore.value = (response.data || []).length === limit
     page.value++
   } catch (error) {
     console.error('Failed to load contents:', error)

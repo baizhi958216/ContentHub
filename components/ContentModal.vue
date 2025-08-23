@@ -214,7 +214,11 @@ const toggleLike = async () => {
   if (!props.content) return
   
   try {
-    const response = await $fetch(`/api/content/${props.content.id}/like`, { method: 'POST' })
+    const auth = useAuth()
+    const response = await $fetch(`/api/content/${props.content.id}/like`, { 
+      method: 'POST',
+      headers: auth.getAuthHeaders()
+    })
     isLiked.value = !isLiked.value
     likes.value = response.likes
     emit('updateStats', props.content.id, { likes: likes.value, favorites: favorites.value })
@@ -227,7 +231,11 @@ const toggleFavorite = async () => {
   if (!props.content) return
   
   try {
-    const response = await $fetch(`/api/content/${props.content.id}/favorite`, { method: 'POST' })
+    const auth = useAuth()
+    const response = await $fetch(`/api/content/${props.content.id}/favorite`, { 
+      method: 'POST',
+      headers: auth.getAuthHeaders()
+    })
     isFavorited.value = !isFavorited.value
     favorites.value = response.favorites
     emit('updateStats', props.content.id, { likes: likes.value, favorites: favorites.value })

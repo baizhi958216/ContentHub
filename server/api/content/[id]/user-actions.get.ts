@@ -9,10 +9,10 @@ export default defineEventHandler(async (event) => {
     // 验证用户是否已登录
     const authHeader = getHeader(event, 'Authorization')
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw createError({
-        statusCode: 401,
-        statusMessage: 'Unauthorized'
-      })
+      return {
+        isLiked: false,
+        isFavorited: false
+      }
     }
     
     const token = authHeader.split(' ')[1]
@@ -21,14 +21,13 @@ export default defineEventHandler(async (event) => {
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key')
     } catch (err) {
-      throw createError({
-        statusCode: 401,
-        statusMessage: 'Invalid token'
-      })
+      return {
+        isLiked: false,
+        isFavorited: false
+      }
     }
     
     const userId = decoded.userId
-
     const contentId = getRouterParam(event, 'id')
     
     if (!contentId) {
@@ -60,55 +59,22 @@ export default defineEventHandler(async (event) => {
       }
     })
 
-    let updatedContent
-
-    if (existingLike) {
-      // 如果已点赞，则取消点赞
-      await prisma.contentLike.delete({
-        where: {
-          userId_contentId: {
-            userId,
-            contentId
-          }
-        }
-      })
-
-      // 减少点赞数
-      updatedContent = await prisma.content.update({
-        where: { id: contentId },
-        data: {
-          likes: { decrement: 1 }
-        },
-        select: {
-          id: true,
-          likes: true
-        }
-      })
-    } else {
-      // 如果未点赞，则添加点赞
-      await prisma.contentLike.create({
-        data: {
+    // 检查用户是否已收藏
+    const existingFavorite = await prisma.contentFavorite.findUnique({
+      where: {
+        userId_contentId: {
           userId,
           contentId
         }
-      })
+      }
+    })
 
-      // 增加点赞数
-      updatedContent = await prisma.content.update({
-        where: { id: contentId },
-        data: {
-          likes: { increment: 1 }
-        },
-        select: {
-          id: true,
-          likes: true
-        }
-      })
+    return {
+      isLiked: !!existingLike,
+      isFavorited: !!existingFavorite
     }
-
-    return updatedContent
   } catch (error) {
-    console.error('Error toggling like:', error)
+    console.error('Error checking user actions:', error)
     
     if (error.statusCode) {
       throw error
@@ -116,7 +82,7 @@ export default defineEventHandler(async (event) => {
     
     throw createError({
       statusCode: 500,
-      statusMessage: 'Failed to toggle like'
+      statusMessage: 'Failed to check user actions'
     })
   }
 })

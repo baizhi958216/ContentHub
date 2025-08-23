@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client'
-import { defineEventHandler, getRouterParam, createError, getRequestHeaders } from 'h3'
+import { defineEventHandler, getRouterParam, createError } from 'h3'
 
 const prisma = new PrismaClient()
 
@@ -14,28 +14,23 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // 获取客户端信息
-    const headers = getRequestHeaders(event)
-    const ipAddress = headers['x-forwarded-for'] || 'unknown'
-    const userAgent = headers['user-agent'] || 'unknown'
-
-    // 记录用户行为
-    await prisma.userAction.create({
-      data: {
-        contentId,
-        action: 'view',
-        ipAddress,
-        userAgent
-      }
+    // 查找内容
+    const content = await prisma.content.findUnique({
+      where: { id: contentId }
     })
+
+    if (!content) {
+      throw createError({
+        statusCode: 404,
+        statusMessage: 'Content not found'
+      })
+    }
 
     // 增加浏览量
     const updatedContent = await prisma.content.update({
       where: { id: contentId },
       data: {
-        views: {
-          increment: 1
-        }
+        views: { increment: 1 }
       },
       select: {
         id: true,
@@ -46,6 +41,11 @@ export default defineEventHandler(async (event) => {
     return updatedContent
   } catch (error) {
     console.error('Error updating view count:', error)
+    
+    if (error.statusCode) {
+      throw error
+    }
+    
     throw createError({
       statusCode: 500,
       statusMessage: 'Failed to update view count'

@@ -1,10 +1,34 @@
 import { PrismaClient } from '@prisma/client'
-import { defineEventHandler, getRouterParam, createError, getRequestHeaders } from 'h3'
+import { defineEventHandler, getRouterParam, createError, getHeader } from 'h3'
+import jwt from 'jsonwebtoken'
 
 const prisma = new PrismaClient()
 
 export default defineEventHandler(async (event) => {
   try {
+    // 验证用户是否已登录
+    const authHeader = getHeader(event, 'Authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      throw createError({
+        statusCode: 401,
+        statusMessage: 'Unauthorized'
+      })
+    }
+    
+    const token = authHeader.split(' ')[1]
+    let decoded
+    
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key')
+    } catch (err) {
+      throw createError({
+        statusCode: 401,
+        statusMessage: 'Invalid token'
+      })
+    }
+    
+    const userId = decoded.userId
+
     const contentId = getRouterParam(event, 'id')
     
     if (!contentId) {
@@ -14,34 +38,46 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // 获取客户端信息
-    const headers = getRequestHeaders(event)
-    const ipAddress = headers['x-forwarded-for'] || 'unknown'
-    const userAgent = headers['user-agent'] || 'unknown'
+    // 查找内容
+    const content = await prisma.content.findUnique({
+      where: { id: contentId }
+    })
 
-    // 检查是否已经收藏过（基于IP地址，简单实现）
-    const existingFavorite = await prisma.userAction.findFirst({
+    if (!content) {
+      throw createError({
+        statusCode: 404,
+        statusMessage: 'Content not found'
+      })
+    }
+
+    // 检查用户是否已收藏
+    const existingFavorite = await prisma.contentFavorite.findUnique({
       where: {
-        contentId,
-        action: 'favorite',
-        ipAddress
+        userId_contentId: {
+          userId,
+          contentId
+        }
       }
     })
 
     let updatedContent
 
     if (existingFavorite) {
-      // 取消收藏
-      await prisma.userAction.delete({
-        where: { id: existingFavorite.id }
+      // 如果已收藏，则取消收藏
+      await prisma.contentFavorite.delete({
+        where: {
+          userId_contentId: {
+            userId,
+            contentId
+          }
+        }
       })
 
+      // 减少收藏数
       updatedContent = await prisma.content.update({
         where: { id: contentId },
         data: {
-          favorites: {
-            decrement: 1
-          }
+          favorites: { decrement: 1 }
         },
         select: {
           id: true,
@@ -49,22 +85,19 @@ export default defineEventHandler(async (event) => {
         }
       })
     } else {
-      // 添加收藏
-      await prisma.userAction.create({
+      // 如果未收藏，则添加收藏
+      await prisma.contentFavorite.create({
         data: {
-          contentId,
-          action: 'favorite',
-          ipAddress,
-          userAgent
+          userId,
+          contentId
         }
       })
 
+      // 增加收藏数
       updatedContent = await prisma.content.update({
         where: { id: contentId },
         data: {
-          favorites: {
-            increment: 1
-          }
+          favorites: { increment: 1 }
         },
         select: {
           id: true,
